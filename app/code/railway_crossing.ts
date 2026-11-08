@@ -9,7 +9,7 @@ import { geometry, Point, type IPoint } from "./tools.ts";
 import { railwayCrossingRenderer } from "./rendering/RailwayCrossingRenderer.ts";
 import { Sig_UI } from "./sig_ui.ts";
 
-export type CrossingApproachSide = "min" | "max";
+type CrossingApproachSide = "min" | "max";
 
 export interface RailwayCrossingEntry {
    track: Track | null;
@@ -383,10 +383,6 @@ export class RailwayCrossing {
             scale: 1,
          },
       ];
-   }
-
-   gatePlacements(): CrossingDecorationPlacement[] {
-      return [];
    }
 
    private renderHalfLength(streetUnit: IPoint): number {

@@ -35,18 +35,6 @@ export const signalDefinitions: Record<string, SignalTemplateDefinition> = (() =
    return defs;
 })();
 
-export const CONDITIONS = (function () {
-   const BKsig = "verw='bksig'",
-      SBK = "verw='sbk'",
-      Esig = "verw='esig'",
-      Asig = "verw='asig'",
-      Zsig = "verw='zsig'",
-      STRECKE = [BKsig, SBK, Esig],
-      GRENZEN = [BKsig, Esig],
-      BAHNHOF = [Asig, Zsig];
-   return { BKsig, SBK, Esig, Asig, Zsig, STRECKE, GRENZEN, BAHNHOF };
-})();
-
 function registerSignalTemplate(signalTemplates: Record<string, any>, key: string, definition: SignalTemplateDefinition) {
    signalTemplates[key] = SignalDefinitionBuilder.build(definition);
 }

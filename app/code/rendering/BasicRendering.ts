@@ -235,10 +235,6 @@ export class BasicRendering extends TrackRenderingBase {
       return shape;
    }
 
-   static drawTriangle(g: TrackGraphics, color: string, p1: any, p2: any, p3: any) {
-      g.fillPoly([p1, p2, p3], color);
-   }
-
    renderAllSwitches(force = false, render_outside_viewport = false) {
       const tracks = this.app.renderingManager!.containers.tracks;
       const rendered: Set<any> = (tracks.renderedSwitches ??= new Set());

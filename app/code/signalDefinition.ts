@@ -1,15 +1,15 @@
-export type SignalInitialAspects = string | string[];
+type SignalInitialAspects = string | string[];
 
 export interface SignalMenuButtonItem {
    text: string;
    command: string;
 }
 
-export interface SignalMenuButtonDefinition {
+interface SignalMenuButtonDefinition {
    button: SignalMenuButtonItem;
 }
 
-export interface SignalMenuDropdownDefinition {
+interface SignalMenuDropdownDefinition {
    dropdown: SignalMenuButtonItem;
 }
 
@@ -19,11 +19,11 @@ export interface SignalTextInputDefinition {
    maxLength?: number;
 }
 
-export interface SignalMenuTextInputDefinition {
+interface SignalMenuTextInputDefinition {
    textinput: SignalTextInputDefinition;
 }
 
-export interface SignalMenuButtonGroupDefinition {
+interface SignalMenuButtonGroupDefinition {
    buttonGroup: SignalMenuButtonItem[];
 }
 
@@ -33,7 +33,7 @@ export type SignalMenuItemDefinition =
    | SignalMenuDropdownDefinition
    | SignalMenuTextInputDefinition;
 
-export interface SignalMenuSectionDefinition {
+interface SignalMenuSectionDefinition {
    section: SignalMenuItemDefinition[];
 }
 
@@ -53,7 +53,7 @@ export interface SignalMenuRuntimeDropdown {
    visual_elements: unknown[];
 }
 
-export interface SignalMenuRuntimeButtonGroup {
+interface SignalMenuRuntimeButtonGroup {
    type: 'buttonGroup';
    items: SignalMenuRuntimeButton[];
 }
@@ -71,7 +71,7 @@ export type SignalMenuRuntimeItem =
    | SignalMenuRuntimeDropdown
    | SignalMenuRuntimeTextInput;
 
-export interface SignalMenuRuntimeSection {
+interface SignalMenuRuntimeSection {
    section: SignalMenuRuntimeItem[];
 }
 
@@ -114,9 +114,9 @@ export interface SequenceState {
    elapsedMs: number;
 }
 
-export type SignalBlendMode = "multiply";
+type SignalBlendMode = "multiply";
 
-export interface SignalVisualElementDefinition {
+interface SignalVisualElementDefinition {
    label?: string;
    image?: string;
    pos?: [number, number];
@@ -147,13 +147,13 @@ export interface SignalConfigSwitchOptionDefinition {
    type?: 'switch';
 }
 
-export interface SignalConfigTextOptionDefinition extends SignalTextInputDefinition {
+interface SignalConfigTextOptionDefinition extends SignalTextInputDefinition {
    type: 'textinput';
 }
 
 export type SignalConfigOptionDefinition = SignalConfigSwitchOptionDefinition | SignalConfigTextOptionDefinition;
 
-export type PublishRule = [condition: string, value: string | number];
+type PublishRule = [condition: string, value: string | number];
 
 export interface SignalDependencyDefinition {
    when?: string[];

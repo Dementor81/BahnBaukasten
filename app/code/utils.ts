@@ -47,25 +47,6 @@ export const NumberUtils = {
       return Number(Math.round(value*factor) / factor);
    },
 
-   /**
-    * Constrain a value between min and max
-    * @param {number} min - Minimum value
-    * @param {number} value - Value to constrain
-    * @param {number} max - Maximum value
-    * @returns {number} Constrained value
-    */
-   minmax(min: number, value: number, max: number): number {
-      return Math.max(min, Math.min(max, value));
-   },
-
-   /**
-    * Generate random integer between 0 and max (inclusive)
-    * @param {number} max - Maximum value
-    * @returns {number} Random integer
-    */
-   randomInt(max: number): number {
-      return Math.floor(Math.random() * (max + 1));
-   }
 } as const;
 
 // Array utilities

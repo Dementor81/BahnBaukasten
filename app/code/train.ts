@@ -453,16 +453,6 @@ export class Train {
       return loco;
    }
 
-   // Count all cars in this train
-   getCarCount(): number {
-      let count = 1;
-      let car = this.trainCoupledBack;
-      while (car) {
-         count++;
-         car = car.trainCoupledBack;
-      }
-      return count;
-   }
 
    restore(): void {
       const t = Track.findTrackByPoint(this._coordinates!);

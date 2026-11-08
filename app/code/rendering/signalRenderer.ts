@@ -8,14 +8,14 @@ import type { Container } from 'pixi.js';
 import { Graphics, Text } from 'pixi.js';
 
 /** Set true to draw rotation pivot markers on rotated signal elements. */
-export const DEBUG_VISUALIZE_SIGNAL_PIVOTS = false;
+const DEBUG_VISUALIZE_SIGNAL_PIVOTS = false;
 
 const DEFAULT_ROTATION_DURATION_MS = 400;
 const ROTATION_ANGLE_EPSILON = 1e-4;
 const FLIP_SCALE_EPSILON = 1e-4;
 
 /** Structural type so callers pass RenderingManager without importing it (avoids circular deps). */
-export type DomainSink = { bindGameObjToDisplayObj(display: Container, domain: unknown): void };
+type DomainSink = { bindGameObjToDisplayObj(display: Container, domain: unknown): void };
 import { rectHitArea } from '../pixiPrimitives.ts';
 import { createLayerContainer, findChildByLabel } from '../pixiUtils.ts';
 import { SignalInteraction } from '../interactions/SignalInteraction.ts';

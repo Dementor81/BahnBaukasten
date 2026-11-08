@@ -8,7 +8,7 @@ import { RailwayCrossingInteraction } from "../interactions/RailwayCrossingInter
 import { SignalRenderer } from "./signalRenderer.ts";
 import type { RenderingManager } from "./RenderingManager.ts";
 
-export class RailwayCrossingRenderer {
+class RailwayCrossingRenderer {
    createDisplay(rm: RenderingManager, crossing: RailwayCrossing): Container {
       const root = createLayerContainer("railway_crossing");
       root.eventMode = "static";

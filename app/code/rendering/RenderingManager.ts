@@ -319,17 +319,6 @@ export class RenderingManager {
    }
 
    /**
-    * Handle renderer change event
-    * @param _advanced - Whether to use the advanced renderer (unused)
-    */
-   handleRendererChange(_advanced: boolean): void {
-      // The renderer is already set by the RenderingManager
-      // Just redraw everything with the new renderer
-      this.#renderer?.reDrawEverything(true);
-      this.update();
-   }
-
-   /**
     * Clear all content from the application
     * @param recordUndo - when false, skip undo snapshot (used while restoring from JSON)
     */
@@ -522,7 +511,6 @@ export class RenderingManager {
    get renderer(): TrackRenderingBase {
       return this.#renderer!;
    }
-   get grid(): any { return this.#grid; }
 
    /** Whether the advanced (detailed) renderer is active. */
    usesAdvancedRenderer(): boolean {

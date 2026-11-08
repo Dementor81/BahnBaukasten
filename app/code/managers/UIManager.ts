@@ -41,7 +41,6 @@ interface EventData {
  */
 export class UIManager {
    #app: Application;
-   #activeMenu: Menu | null = null;
    #rendererChoiceCardsHandle: RendererChoiceCardsHandle | null = null;
    #startScreenRendererHandle: RendererChoiceCardsHandle | null = null;
    #drawingPanel = new DrawingPanel();
@@ -348,7 +347,6 @@ export class UIManager {
 
       if (menu == null) {
          bsOffcanvas.hide();
-         this.#activeMenu = null;
          return;
       }
 
@@ -398,7 +396,6 @@ export class UIManager {
       $("#sidebar > #" + div_id).show();
 
       bsOffcanvas.show();
-      this.#activeMenu = menu;
    }
 
    /**
@@ -627,13 +624,6 @@ export class UIManager {
    }
 
    /**
-    * Hide start screen
-    */
-   hideStartScreen(): void {
-      this.#startScreen.hide();
-   }
-
-   /**
     * Show error toast
     * @param error - The error to display
     */
@@ -649,19 +639,5 @@ export class UIManager {
       ui.showInfoToast(message);
    }
 
-   /**
-    * Get the currently active menu
-    * @returns The active menu type
-    */
-   get activeMenu(): Menu | null {
-      return this.#activeMenu;
-   }
-
-   /**
-    * Hide the current menu
-    */
-   hideMenu(): void {
-      this.showMenu(null);
-   }
 }
 

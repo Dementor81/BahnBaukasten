@@ -18,14 +18,6 @@ export interface ILine {
    end: IPoint;
 }
 
-/** A box with four corner points */
-export interface IBox {
-   topLeft: IPoint;
-   topRight: IPoint;
-   bottomRight: IPoint;
-   bottomLeft: IPoint;
-}
-
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -41,15 +33,6 @@ export function findFieldNameForObject(container: Record<string, any>, ref: any)
 
 export function swap<T>(current: T, value1: T, value2: T): T {
    return current === value1 ? value2 : value1;
-}
-
-export function deepEqual(x: any, y: any): boolean {
-   const ok = Object.keys,
-      tx = typeof x,
-      ty = typeof y;
-   return x && y && tx === "object" && tx === ty
-      ? ok(x).length === ok(y).length && ok(x).every((key) => deepEqual(x[key], y[key]))
-      : x === y;
 }
 
 export function clone<T>(obj: T): T {
@@ -96,22 +79,6 @@ export function getCDataValue(element: Element): string | null {
    return cdataNode?.nodeValue ?? null;
 }
 
-export function isPointInsideBox(point: IPoint, box: IBox, rotationAngle: number): boolean {
-   const { topLeft, topRight, bottomLeft } = box;
-
-   // Translate the point to align with the box's axes based on the given rotation angle
-   const translatedPoint = {
-      x: (point.x - topLeft.x) * Math.cos(-rotationAngle) - (point.y - topLeft.y) * Math.sin(-rotationAngle),
-      y: (point.x - topLeft.x) * Math.sin(-rotationAngle) + (point.y - topLeft.y) * Math.cos(-rotationAngle),
-   };
-
-   // Check if the translated point is inside the aligned box
-   const isInsideX = translatedPoint.x > 0 && translatedPoint.x < Math.hypot(topRight.x - topLeft.x, topRight.y - topLeft.y);
-   const isInsideY = translatedPoint.y > 0 && translatedPoint.y < Math.hypot(bottomLeft.x - topLeft.x, bottomLeft.y - topLeft.y);
-
-   return isInsideX && isInsideY;
-}
-
 // ============================================================================
 // Geometry Object
 // ============================================================================
@@ -129,15 +96,6 @@ export const geometry = {
 
    slope(p1: IPoint, p2: IPoint): number {
       return (p1.y - p2.y) / (p1.x - p2.x);
-   },
-
-   /**
-    * Converts radians to degrees.
-    * @param rad Value in radians.
-    * @returns Value in degrees.
-    */
-   radToDeg(rad: number): number {
-      return rad * (180 / Math.PI);
    },
 
    /**
@@ -287,13 +245,6 @@ export const geometry = {
       );
    },
 
-   pointOnArc(radius: number, rad: number, centerpoint?: IPoint): IPoint {
-      return {
-         x: radius * Math.cos(rad) + (centerpoint?.x ?? 0),
-         y: radius * Math.sin(rad) + (centerpoint?.y ?? 0),
-      };
-   },
-
    /**
     * Returns the distance between a point and a line segment
     */
@@ -366,16 +317,6 @@ export const geometry = {
       if (mag1 === 0 || mag2 === 0) return 0;
       const cos = Math.max(-1, Math.min(1, this.dotProduct(v1, v2) / (mag1 * mag2)));
       return Math.acos(cos);
-   },
-
-   /**
-    * Returns the midpoint between two points
-    */
-   midpoint(p1: IPoint, p2: IPoint): Point {
-      return new Point(
-         NumberUtils.round((p1.x + p2.x) / 2, this.PRECISION),
-         NumberUtils.round((p1.y + p2.y) / 2, this.PRECISION)
-      );
    },
 
    /**
@@ -557,21 +498,5 @@ export class Point implements IPoint {
    mirror(): Point {
       return new Point(-this.x, -this.y);
    }
-}
-
-// ============================================================================
-// Performance Testing
-// ============================================================================
-
-export function testPerformance(f: () => void, txt: string): void {
-   const start = performance.now();
-   f();
-   const end = performance.now();
-   console.info(`${txt}: ${(end - start).toFixed(3)}ms`);
-}
-
-// Legacy export for backward compatibility - remove 'type' function if not used
-export function type(obj: any): string {
-   return Object.prototype.toString.call(obj).slice(8, -1);
 }
 

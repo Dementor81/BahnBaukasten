@@ -186,16 +186,6 @@ export class SignalTemplate {
       return controllers;
    }
 
-   #_sequenceManagedLabels: Set<string> | null = null;
-
-   /** Whether a label is shown/hidden by a sequence controller. */
-   isSequenceManagedLabel(label: string): boolean {
-      if (!this.#_sequenceManagedLabels) {
-         this.#_sequenceManagedLabels = new Set(this.getSequenceControllers().flatMap((c) => c.managedLabels));
-      }
-      return this.#_sequenceManagedLabels.has(label);
-   }
-
    ///returns an array with all conditions. Used by UI to determent if a Feauture should be displayed
    getAllVisualElementConditions() {
       const stack = [...this.elements];

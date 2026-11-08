@@ -27,16 +27,8 @@ export const CONFIG = {
     MIN_SCALE: 0.2,
     
     // History and undo
-    MOST_UNDO: 20,    
-    
-    // Canvas settings
-    CANVAS_AUTO_CLEAR: true,
-    CANVAS_ENABLE_DOM_EVENTS: true,
-    TICKER_FRAMERATE: 1,
+    MOST_UNDO: 20,
 } as const;
-
-// Type helper: Extract the type of CONFIG
-export type AppConfig = typeof CONFIG;
 
 // ============================================================================
 // Computed Values
@@ -50,71 +42,36 @@ export const COMPUTED = {
 // Enums for Type-Safe Constants
 // ============================================================================
 
-/**
- * Direction constants for signal and train movement
- */
-export enum Direction {
-    LEFT_2_RIGHT = 1,
-    RIGHT_2_LEFT = -1,
-}
-
-// Backward compatibility - keep the old object export
 export const DIRECTION = {
-    LEFT_2_RIGHT: Direction.LEFT_2_RIGHT,
-    RIGHT_2_LEFT: Direction.RIGHT_2_LEFT,
+    LEFT_2_RIGHT: 1,
+    RIGHT_2_LEFT: -1,
 } as const;
 
-/**
- * Custom mouse action types
- */
-export enum CustomMouseAction {
-    NONE = 0,
-    DRAWING = 1,
-    ERASER = 2,
-    TEXT = 3,
-    PLATTFORM = 4,
-    TRAIN_COUPLE = 5,
-    TRAIN_DECOUPLE = 6,
-    RAILWAY_CROSSING = 7,
-}
-
-// Backward compatibility
 export const CUSTOM_MOUSE_ACTION = {
-    NONE: CustomMouseAction.NONE,
-    DRAWING: CustomMouseAction.DRAWING,
-    ERASER: CustomMouseAction.ERASER,
-    TEXT: CustomMouseAction.TEXT,
-    PLATTFORM: CustomMouseAction.PLATTFORM,
-    TRAIN_COUPLE: CustomMouseAction.TRAIN_COUPLE,
-    TRAIN_DECOUPLE: CustomMouseAction.TRAIN_DECOUPLE,
-    RAILWAY_CROSSING: CustomMouseAction.RAILWAY_CROSSING,
+    NONE: 0,
+    DRAWING: 1,
+    ERASER: 2,
+    TEXT: 3,
+    PLATTFORM: 4,
+    TRAIN_COUPLE: 5,
+    TRAIN_DECOUPLE: 6,
+    RAILWAY_CROSSING: 7,
 } as const;
 
-/**
- * Menu types
- */
-export enum Menu {
-    EDIT_SIGNAL = 0,
-    NEW_SIGNAL = 1,
-    EDIT_TRAIN = 2,
-    NEW_TRAIN = 3,
-    NEW_OBJECT = 4,
-    EDIT_OBJECT = 5,
-    EDIT_TRACK = 6,
-    EDIT_RAILWAY_CROSSING = 7,
-}
+export type CustomMouseAction = (typeof CUSTOM_MOUSE_ACTION)[keyof typeof CUSTOM_MOUSE_ACTION];
 
-// Backward compatibility
 export const MENU = {
-    EDIT_SIGNAL: Menu.EDIT_SIGNAL,
-    NEW_SIGNAL: Menu.NEW_SIGNAL,
-    EDIT_TRAIN: Menu.EDIT_TRAIN,
-    NEW_TRAIN: Menu.NEW_TRAIN,
-    NEW_OBJECT: Menu.NEW_OBJECT,
-    EDIT_OBJECT: Menu.EDIT_OBJECT,
-    EDIT_TRACK: Menu.EDIT_TRACK,
-    EDIT_RAILWAY_CROSSING: Menu.EDIT_RAILWAY_CROSSING,
+    EDIT_SIGNAL: 0,
+    NEW_SIGNAL: 1,
+    EDIT_TRAIN: 2,
+    NEW_TRAIN: 3,
+    NEW_OBJECT: 4,
+    EDIT_OBJECT: 5,
+    EDIT_TRACK: 6,
+    EDIT_RAILWAY_CROSSING: 7,
 } as const;
+
+export type Menu = (typeof MENU)[keyof typeof MENU];
 
 // ============================================================================
 // Colors
@@ -128,7 +85,6 @@ export const COLORS = {
     DRAWING_BLUEPRINT: "blue",
     DRAWING_ACTIVE: "#0000ff90",
     DRAWING_INVALID: "red",
-    TRANSPARENT: "#00000000",
     DRAWING_PLATTFORM: "#111111",
     
     // Train colors
@@ -142,11 +98,6 @@ export const COLORS = {
 export const PATHS = {
     IMAGES: "images",
     PREBUILDS: "prebuilds.xml",
-    FONTS: {
-        CONDENSED: "condenced",
-        ARIAL: "Arial",
-        DOT: "DOT",
-    } as const,
 } as const;
 
 // ============================================================================
@@ -155,8 +106,6 @@ export const PATHS = {
 
 export const INPUT = {
     MOUSE_MOVEMENT_THRESHOLD: 4, // pixels
-    TOUCH_SUPPORTED: true,
-    CONTEXT_MENU_ENABLED: false,
     ZOOM_STEP_DIVISOR: 1000,
 } as const;
 
@@ -165,7 +114,6 @@ export const INPUT = {
 // ============================================================================
 
 export const CONTAINERS = {
-    MAIN: "main",
     DEBUG: "debug",
     TRACKS: "tracks",
     OBJECTS: "objects",
@@ -176,33 +124,3 @@ export const CONTAINERS = {
     OVERLAY: "overlay",
     DRAWING: "drawing_container",
 } as const;
-
-// ============================================================================
-// Type Exports
-// ============================================================================
-
-export type ColorConfig = typeof COLORS;
-export type PathConfig = typeof PATHS;
-export type InputConfig = typeof INPUT;
-export type ContainerNames = typeof CONTAINERS;
-
-// ============================================================================
-// Default Export (for convenience)
-// ============================================================================
-
-export default {
-    CONFIG,
-    COMPUTED,
-    DIRECTION,
-    CUSTOM_MOUSE_ACTION,
-    MENU,
-    COLORS,
-    PATHS,
-    INPUT,
-    CONTAINERS,
-    
-    // Export enums too
-    Direction,
-    CustomMouseAction,
-    Menu,
-} as const; 

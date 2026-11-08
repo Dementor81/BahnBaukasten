@@ -203,7 +203,6 @@ export const ui = {
                    })
                       .on("change", function () {
                          const isChecked = $(this).is(":checked");
-                         /* $("input", $mainDiv.children()[1]).prop("disabled", !isChecked); */
                          if (onchange) onchange($(this).attr("value") ?? "", isChecked);
                       })
                       .attr("value", value ?? text)

@@ -13,7 +13,7 @@ import { createLayerContainer } from "./pixiUtils.ts";
 type PointLike = { x: number; y: number };
 
 /** Attach Pixi `label` and pointer hit readiness (domain lives on RenderingManager WeakMap). */
-export function attachGleisGraphicsMeta(displayObject: Graphics | Container, label?: string): void {
+function attachGleisGraphicsMeta(displayObject: Graphics | Container, label?: string): void {
    displayObject.label = label ?? "";
    displayObject.eventMode = "static";
 }

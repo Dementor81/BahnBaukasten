@@ -182,10 +182,6 @@ export class AdvancedRendererCore {
       });
    }
 
-   PointVisible(p1: any, screen_rectangle = this.renderer._rendering?.screen_rectangle) {
-      return screen_rectangle ? this.renderer.pointInRect(p1, screen_rectangle) : false;
-   }
-
    TrackVisible(track: any, screen_rectangle = this.renderer._rendering.screen_rectangle) {
       if (this.renderer._rendering?.render_outside_viewport) return true;
       return this.renderer.trackInRect(track, screen_rectangle);

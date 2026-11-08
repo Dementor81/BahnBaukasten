@@ -482,33 +482,4 @@ export class EventManager {
       }
    }
 
-   /**
-    * Clean up all event listeners
-    */
-   cleanup(): void {
-      // Remove all event listeners
-      this.#eventListeners.clear();
-
-      // Remove canvas event listeners
-      const c = this.#mainCanvas;
-      c?.removeEventListener("wheel", this.#boundHandleWheelEvent!);
-      c?.removeEventListener("pointermove", this.#boundHandleCanvasPointerMove!);
-      c?.removeEventListener("touchstart", this.#boundHandleTouchStart!);
-      c?.removeEventListener("touchmove", this.#boundHandleTouchMove!);
-      c?.removeEventListener("touchend", this.#boundHandleTouchEnd!);
-      c?.removeEventListener("touchcancel", this.#boundHandleTouchEnd!);
-
-      // Remove stage federated event listeners
-      const stage = this.#app.renderingManager?.pixiApp?.stage;
-      stage?.off("pointerdown", this.#boundHandleStagePointerDown);
-      stage?.off("globalpointermove", this.#boundHandleStageGlobalPointerMove);
-      stage?.off("pointerup", this.#boundHandleStagePointerUp);
-      stage?.off("pointerupoutside", this.#boundHandleStagePointerUp);
-
-      // Remove document event listeners
-      document.removeEventListener("keydown", this.#boundHandleKeyDown!);
-
-      // Remove window event listeners
-      $(window).off("resize", this.#boundHandleWindowResize!);
-   }
 }
