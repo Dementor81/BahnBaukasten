@@ -22,6 +22,12 @@ SOURCE_DIR="app/dist/"
 
 # --- Deployment Steps ---
 
+# Generated pages keep a stable filename. Webpack does not rewrite one that is
+# already in dist when it considers the bytes unchanged, so the modification
+# time stays put. rsync then treats the server copy as current. The dev server
+# serves app/*.html directly, so the preview can be ahead of dist.
+rm -f "${SOURCE_DIR}index.html" "${SOURCE_DIR}start.html" "${SOURCE_DIR}signal-config.html"
+
 # 1. Build the project
 echo "Building project for production..."
 npm run build
@@ -34,12 +40,10 @@ fi
 echo "✅ Build complete."
 
 # 2. Deploy files using rsync
-# The -a flag is for archive mode (preserves permissions, etc.)
-# The -v flag is for verbose output.
-# The -z flag compresses file data during the transfer.
-# The --delete flag removes files on the server that are not in the source directory.
+# -a archive, -v verbose, -z compress, -c compare contents instead of size and time.
+# --delete removes files on the server that are not in the source directory.
 echo "🚀 Deploying files to ${REMOTE_HOST}..."
-sshpass -f .password rsync -avz --delete "${SOURCE_DIR}" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_TARGET_DIR}"
+sshpass -f .password rsync -avzc --delete "${SOURCE_DIR}" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_TARGET_DIR}"
 
 # Check if rsync was successful
 if [ $? -eq 0 ]; then
