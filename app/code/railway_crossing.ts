@@ -43,7 +43,7 @@ interface CrossingObject {
    streetLength: number;
    secured?: number;
    streetLightAspects?: Record<string, unknown>;
-   entries: { trackId: number; km: number }[];
+   entries: { trackId?: number; edge?: number; km: number }[];
 }
 
 export class RailwayCrossing {
@@ -169,8 +169,8 @@ export class RailwayCrossing {
 
    static kmRangeOnTrack(track: Track, streetWidth: number): { min: number; max: number } {
       const halfWidth = streetWidth / 2;
-      const startMargin = track.switchAtTheStart ? CONFIG.GRID_SIZE / 2 : 0;
-      const endMargin = track.switchAtTheEnd ? CONFIG.GRID_SIZE / 2 : 0;
+      const startMargin = track.connectionAt(track.nodeA) ? CONFIG.GRID_SIZE / 2 : 0;
+      const endMargin = track.connectionAt(track.nodeB) ? CONFIG.GRID_SIZE / 2 : 0;
       return {
          min: startMargin + halfWidth,
          max: track.length - endMargin - halfWidth,
@@ -280,7 +280,7 @@ export class RailwayCrossing {
       const crossing = new RailwayCrossing(
          Point.fromPoint(o.center),
          o.trackAngle,
-         o.entries.map((entry) => ({ track: null, trackId: entry.trackId, km: entry.km })),
+         o.entries.map((entry) => ({ track: null, trackId: entry.edge ?? entry.trackId ?? 0, km: entry.km })),
          o.streetWidth,
          Math.max(o.streetLength, RailwayCrossing.DEFAULT_STREET_LENGTH)
       );
@@ -486,7 +486,6 @@ export class RailwayCrossing {
 
    stringify(): any {
       return {
-         _class: "RailwayCrossing",
          id: this.id,
          center: this.center,
          trackAngle: this.trackAngle,
@@ -494,7 +493,11 @@ export class RailwayCrossing {
          streetLength: this.streetLength,
          secured: this.secured,
          streetLightAspects: this.streetLightAspects,
-         entries: this.entries.map((entry) => ({ trackId: entry.track?.id ?? entry.trackId, km: entry.km })),
+         entries: this.entries.map((entry) => ({
+            trackId: entry.track?.id ?? entry.trackId,
+            edge: entry.track?.id ?? entry.trackId,
+            km: entry.km,
+         })),
       };
    }
 }

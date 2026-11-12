@@ -4,9 +4,8 @@
 import { CONFIG, COLORS, CONTAINERS, INPUT } from '../config.ts';
 import { STORAGE } from '../storage.ts';
 import { Train } from '../train.ts';
-import { Track } from '../track.ts';
-import { Switch } from '../switch.ts';
 import { Signal } from '../signal.ts';
+import { railNetwork } from '../railNetwork.ts';
 import { GenericObject } from '../generic_object.ts';
 import { RailwayCrossing } from '../railway_crossing.ts';
 import { BasicRendering } from './BasicRendering.ts';
@@ -328,8 +327,7 @@ export class RenderingManager {
       // Stop any moving trains first
       Train.stopAllTrains();
 
-      Track.allTracks = [];
-      Switch.allSwitches = [];
+      railNetwork.clear();
       Signal.allSignals = new Set();
       Train.allTrains = [];
       GenericObject.all_objects = [];

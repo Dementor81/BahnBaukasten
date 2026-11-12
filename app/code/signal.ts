@@ -3,13 +3,13 @@
 // ES6 Module imports
 import { ArrayUtils } from './utils.ts';
 import { findFieldNameForObject } from './tools.ts';
-import { Track } from './track.ts';
 import { DIRECTION } from './config.ts';
 import { Application } from './application.ts';
 import { SignalRenderer } from './rendering/signalRenderer.ts';
 import { SignalTemplate } from './signalTemplate.ts';
 import { SignalConditionEvaluator } from './signalConditionEvaluator.ts';
 import type { AspectAnimationKind, SequenceState } from './signalDefinition.ts';
+import { railNetwork } from './railNetwork.ts';
 
 
 /**
@@ -21,10 +21,7 @@ export class Signal {
    static allSignals = new Set<any>();
 
    static removeSignal(s: any) {
-      const track = Track.allTracks.find((t) => t.signals.includes(s));
-      if (track) {
-         track.removeSignal(s);
-      }
+      s._positioning.track?.removeSignal(s);
       Signal.allSignals.delete(s);
    }
 
@@ -182,7 +179,6 @@ export class Signal {
 
       let track = signal._positioning.track;
       let index = track.signals.indexOf(signal) + dir;
-      let sw: any = null;
 
       const check = function (pos: any) {
          return (
@@ -192,30 +188,19 @@ export class Signal {
          );
       };
 
-      const getTrackAtBranch = function (sw: any, track: any) {
-         if (track == sw.from) return sw.branch;
-         if (track == sw.branch) return sw.from;
-
-         return null;
-      };
-
       while (track) {
          while (dir == 1 ? index >= 0 && index < track.signals.length : index >= 0) {
-            let nextSignal = track.signals[index];
+            const nextSignal = track.signals[index];
             if (nextSignal.check(feature) && check(nextSignal._positioning)) {
-               return nextSignal; //hauptsignal gefunden
+               return nextSignal;
             } else index = index + dir;
          }
 
-         if ((sw = track.switches[dir == 1 ? 1 : 0])) {
-            if (sw instanceof Track) track = sw;
-            else track = getTrackAtBranch(sw, track);
-
-            if (track) {
-               index = track.signals.length - 1;
-               if (dir == DIRECTION.LEFT_2_RIGHT) index = Math.min(0, index);
-            }
-         } else track = null;
+         const node = dir == 1 ? track.nodeB : track.nodeA;
+         track = railNetwork.nextTrack(track, node);
+         if (track) {
+            index = dir == DIRECTION.LEFT_2_RIGHT ? 0 : track.signals.length - 1;
+         }
       }
       return null;
    }
@@ -241,24 +226,31 @@ export class Signal {
 
    stringify() {
       return {
-         _class: "Signal",
          _template: findFieldNameForObject(Application.getInstance().signalTemplates, this._template),
          _signalStellung: this._signalStellung,
-         _positioning: {
-            km: this._positioning.km,
-            above: this._positioning.above,
-            flipped: this._positioning.flipped,
-         },
+         edge: this._positioning.track?.id,
+         km: this._positioning.km,
+         above: this._positioning.above,
+         flipped: this._positioning.flipped,
          _renderOrder: this._renderOrder,
       };
    }
 
    static FromObject(o: any) {
-      const templateKey = o._template;
+      const templateKey = o._template ?? o.template;
       const s = new Signal(Application.getInstance().signalTemplates[templateKey]);
-      s._signalStellung = Signal.migrateSignalStellung(templateKey, o._signalStellung);
-      s._positioning = o._positioning;
-      if (o._renderOrder != null) s._renderOrder = o._renderOrder;
+      s._signalStellung = Signal.migrateSignalStellung(templateKey, o._signalStellung ?? o.stellung);
+      s._positioning = {
+         track: null,
+         km: o.km ?? o._positioning?.km ?? 0,
+         above: o.above ?? o._positioning?.above ?? false,
+         flipped: o.flipped ?? o._positioning?.flipped ?? false,
+      };
+      if (o._renderOrder != null || o.renderOrder != null) s._renderOrder = o._renderOrder ?? o.renderOrder;
+      const edgeId = o.edge ?? o._positioning?.track;
+      const track = typeof edgeId === "number" ? railNetwork.getTrack(edgeId) : null;
+      if (track) track.AddSignal(s, s._positioning.km, s._positioning.above, s._positioning.flipped);
+      else Signal.allSignals.delete(s);
       return s;
    }
 

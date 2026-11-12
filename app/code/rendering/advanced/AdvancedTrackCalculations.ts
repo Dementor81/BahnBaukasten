@@ -27,13 +27,13 @@ export class AdvancedTrackCalculations {
 
    /** Final tangent length reserved on `track`'s `side`, clamped so both ends fit within track.length. */
    private getTrackEndOffset(track: Track, side: "start" | "end"): number {
-      const conn = side === "start" ? track.switchAtTheStart : track.switchAtTheEnd;
+      const conn = track.connectionAt(side === "start" ? track.nodeA : track.nodeB);
       if (!conn) return -CONFIG.GRID_SIZE;
       if (conn instanceof Switch) return this.renderer.switchCalculations.getBranchSize(conn, track);
 
       const ideal = this.getJointCurveBaseSize(track.unit, conn.unit);
 
-      const otherConn = side === "start" ? track.switchAtTheEnd : track.switchAtTheStart;
+      const otherConn = track.connectionAt(side === "start" ? track.nodeB : track.nodeA);
       const otherIdeal = !otherConn
          ? CONFIG.GRID_SIZE
          : otherConn instanceof Switch
@@ -46,7 +46,7 @@ export class AdvancedTrackCalculations {
    }
 
    calculateTrackPoints(track: any) {
-      const endConnection = track.switchAtTheEnd;
+      const endConnection = track.connectionAt(track.nodeB);
 
       const startOffset = this.getTrackEndOffset(track, "start");
       const startPoint = track.start.add(geometry.multiply(track.unit, startOffset));

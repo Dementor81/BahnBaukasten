@@ -7,7 +7,7 @@ import { EditorCommitter } from "../editorCommitter.ts";
 import { geometry, Point } from "../tools.ts";
 import { ArrayUtils } from "../utils.ts";
 import { Track } from "../track.ts";
-import { Train } from "../train.ts";
+import { railNetwork } from "../railNetwork.ts";
 import { gleisGraphics } from "../pixiPrimitives.ts";
 import { BasicRendering } from "../rendering/BasicRendering.ts";
 import { PointerInteractionAttachment } from "./attachPointerInteraction.ts";
@@ -57,9 +57,7 @@ export class TrackBuildInteraction extends ElementInteraction {
    protected override onDragEnd(): void {
       const rm = Application.getInstance().renderingManager!;
       if (this.#nodes.length > 0) {
-         Track.checkNodesAndCreateTracks(this.#nodes);
-         Track.createRailNetwork();
-         Train.allTrains.forEach((t) => t.restore());
+         railNetwork.addPath(this.#nodes);
          rm.renderer.reDrawEverything(true);
          EditorCommitter.commit();
       }

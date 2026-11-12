@@ -132,7 +132,7 @@ export class AdvancedSleeperRendering {
 
    drawBumper(track: any, track_container: any) {
       const r = this.renderer;
-      if (track.switchAtTheEnd == null) {
+      if (track.connectionAt(track.nodeB) == null) {
          const bumperEnd = new Sprite(r.bumperImg);
          bumperEnd.eventMode = "static";
          bumperEnd.x = track.end.x;
@@ -143,7 +143,7 @@ export class AdvancedSleeperRendering {
          track_container.addChild(bumperEnd);
       }
 
-      if (track.switchAtTheStart == null) {
+      if (track.connectionAt(track.nodeA) == null) {
          const bumperStart = new Sprite(r.bumperImg);
          bumperStart.eventMode = "static";
          bumperStart.x = track.start.x;

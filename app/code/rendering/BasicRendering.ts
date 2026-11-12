@@ -176,14 +176,14 @@ export class BasicRendering extends TrackRenderingBase {
 
       const perpendicular = geometry.perpendicular(track.unit);
 
-      if (!track.switchAtTheStart && track.hasBumper) {
+      if (!track.connectionAt(track.nodeA) && track.hasBumper) {
          //prellbock beim start
          const B1 = track.start.add(perpendicular.multiply(-BasicRendering.BUMPER_SIZE));
          const B2 = track.start.add(perpendicular.multiply(BasicRendering.BUMPER_SIZE));
          bumper_start = [B1, B2];
       }
 
-      if (!track.switchAtTheEnd && track.hasBumper) {
+      if (!track.connectionAt(track.nodeB) && track.hasBumper) {
          //prellbock beim ende
          const B1 = track.end.add(perpendicular.multiply(-BasicRendering.BUMPER_SIZE));
          const B2 = track.end.add(perpendicular.multiply(BasicRendering.BUMPER_SIZE));

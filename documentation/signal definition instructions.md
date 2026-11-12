@@ -320,7 +320,7 @@ Dropdown behavior:
 
 ## Configuration Options
 
-`config_options` create switches in the configuration tab, not in the Signalstellung tab.
+`config_options` create switches in the configuration tab.
 
 ```json
 "config_options": [

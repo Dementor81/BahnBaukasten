@@ -1,33 +1,21 @@
 "use strict";
 
-// ES6 Module imports
 import { NumberUtils, ArrayUtils } from "./utils.ts";
 import { Track } from "./track.ts";
 import { V2, Point, geometry, swap } from "./tools.ts";
-import { CONFIG } from "./config.ts";
+import type { Node } from "./node.ts";
 
 export class Switch {
    static allSwitches: Switch[] = [];
-   static counter: number = 0;
-
-   static _getID(): number {
-      return Switch.counter++;
-   }
 
    static SWITCH_TYPE = {
       NONE: 0,
-      TO_RIGHT: 1, //45°
-      FROM_RIGHT: 2, //135°
-      FROM_LEFT: 3, //225°
-      TO_LEFT: 4, //315°
+      TO_RIGHT: 1,
+      FROM_RIGHT: 2,
+      FROM_LEFT: 3,
+      TO_LEFT: 4,
       DKW: 9,
-      CROSSING: 10,
    };
-
-
-   static hasMinimumTracks(sw: Switch): boolean {
-      return !!(sw.track1 && sw.track2 && sw.track3);
-   }
 
    static isCompleteForRendering(sw: Switch): boolean {
       return !!(
@@ -45,214 +33,63 @@ export class Switch {
       } else if (track1.end.equals(track2.start) || track1.end.equals(track2.end)) {
          intersection = track1.end;
       } else {
-         // No intersection found
          return null;
       }
-      let v1_p: Point;
-      if (track2.start.equals(intersection)) {
-         v1_p = track2.end;
-      } else {
-         v1_p = track2.start;
-      }
-      let v2_p: Point;
-      if (track1.start.equals(intersection)) {
-         v2_p = track1.end;
-      } else {
-         v2_p = track1.start;
-      }
-      const angle = geometry.calculateAngle(intersection, v1_p, v2_p);
-      return angle;
-   }   
-
-   //sw=switch location
-   //rad= angle of track_1 in rad
-   //c= end of the track_2 to find angle
-   static findAngle(sw: Point, c: Point, rad: number = 0): number {
-      let atan = Math.atan2(c.y - sw.y, c.x - sw.x) - rad;
-      if (atan < 0) atan += 2 * Math.PI; //macht aus neg Winkeln durch addition von 360° positive winkel
-
-      let val = (atan * 180) / Math.PI;
-      return val;
+      const v1_p = track2.start.equals(intersection) ? track2.end : track2.start;
+      const v2_p = track1.start.equals(intersection) ? track1.end : track1.start;
+      return geometry.calculateAngle(intersection, v1_p, v2_p);
    }
 
-   /**
-    * Validates if a switch at a given location is valid based on the provided tracks.
-    *
-    * @param {Object} location - The location to check for a valid switch.
-    * @param {Array} tracks - An array of track objects, each containing nodes with start and end points.
-    * @returns {boolean} - Returns true if the switch is valid, otherwise false.
-    */
+   static findAngle(sw: Point, c: Point, rad: number = 0): number {
+      let atan = Math.atan2(c.y - sw.y, c.x - sw.x) - rad;
+      if (atan < 0) atan += 2 * Math.PI;
+      return (atan * 180) / Math.PI;
+   }
+
    static isValidSwitch(location: Point, tracks: Track[]): boolean {
       if (!location) return false;
-      if (!NumberUtils.between(tracks.length, 3, 4)) {
-         console.log(`too many nodes ${tracks.length}`);
-         return false;
-      }
+      if (!NumberUtils.between(tracks.length, 3, 4)) return false;
       const slopes = tracks.map((t) => t.slope);
       const equal_slopes = ArrayUtils.countNonUnique(slopes);
       if (!((tracks.length == 3 && equal_slopes == 1) || (tracks.length == 4 && equal_slopes == 2))) {
-         console.log(`2 tracks with the same slope are necessary`);
          return false;
       }
-
       for (let i = 1; i < slopes.length; i++) {
-         if (Math.abs(slopes[i - 1] - slopes[i]) > 1) {
-            console.log(`slope between 2 tracks must be lower than 45°`);
-            return false;
-         }
+         if (Math.abs(slopes[i - 1] - slopes[i]) > 1) return false;
       }
       return true;
-   }
-   /**
-    * Creates a switch object based on the provided location and tracks.
-    *
-    * @param {Object} location - The location of the switch.
-    * @param {Array} tracks - An array of track objects.
-    * @returns {Object} The created switch object.
-    * @throws {Error} If the tracks do not have 2 different angles.
-    */
-   static createSwitch(location: Point, tracks: Track[]): Switch {
-      const sw = new Switch(location);
-
-      const left_tracks = tracks.filter((t) => t.end.equals(location)).sort((a, b) => b.slope - a.slope);
-      const right_tracks = tracks.filter((t) => t.start.equals(location)).sort((a, b) => b.slope - a.slope);
-      let rad = 0;
-
-      if (left_tracks.length == 1) {
-         sw.track1 = left_tracks[0];
-         rad = sw.track1.rad;
-         sw.track2 = right_tracks.find((t) => t.rad == rad)!;
-      } else {
-         sw.track1 = right_tracks[0];
-         rad = sw.track1.rad;
-         sw.track2 = left_tracks.find((t) => t.rad == rad)!;
-      }
-
-      if (sw.track2 == null) throw new Error("couldnt find 2 tracks with the same slope");
-
-      //find the other two tracks and sort them by their start point
-      [sw.track3, sw.track4] = tracks.filter((t) => t != sw.track1 && t != sw.track2).sort((a, b) => a.start.x - b.start.x);
-
-      // Calculate direction vectors for each track branch
-      sw.calculateParameters();
-
-      sw.branch = sw.track2;
-      sw.from = sw.track1;
-
-      return sw;
-   }
-
-   /**
-    * Checks for and creates/updates a switch at a specific point in the track network.
-    * This function encapsulates the logic for determining if a point is a simple connection,
-    * a valid switch, or an invalid connection, and performs the necessary updates.
-    * @param {Point} point - The connection point to check.
-    * @param {Switch} [existingSwitch=null] - An optional, pre-existing switch to re-evaluate.
-    */
-   static updateSwitchAtPoint(point: Point, existingSwitch: Switch | undefined = undefined): void {
-      const tracksAtPoint = Track.allTracks.filter((t) => t.start.equals(point) || t.end.equals(point));
-
-      if (!existingSwitch) {
-         existingSwitch = Switch.allSwitches.find((sw) => sw.location.equals(point));
-      } else {
-         if (!existingSwitch.location.equals(point)) throw new Error("existing switch at wrong point");
-      }
-
-      if (tracksAtPoint.length === 2) {
-         // Simple connection, not a switch.
-         const track1 = tracksAtPoint[0];
-         const track2 = tracksAtPoint[1];
-
-         const angle = Switch.getAngleBetweenTracks(track1, track2);
-         if (angle && angle > 90) {
-            if (track1.start.equals(point)) track1.switchAtTheStart = track2;
-            else track1.switchAtTheEnd = track2;
-
-            if (track2.start.equals(point)) track2.switchAtTheStart = track1;
-            else track2.switchAtTheEnd = track1;
-         }
-         if (existingSwitch) {
-            Switch.removeSwitch(existingSwitch);
-         }
-      } else if (NumberUtils.between(tracksAtPoint.length, 3, 4)) {
-         // Potential switch.
-         if (Switch.isValidSwitch(point, tracksAtPoint)) {
-            const sw = Switch.createSwitch(point, tracksAtPoint);
-            const sameTracks = (a: Switch, b: Switch) => {
-               const tracksA = a.tracks.filter((t) => t);
-               return tracksA.length === b.tracks.filter((t) => t).length && tracksA.every((t) => b.tracks.includes(t));
-            };
-            if (existingSwitch && sameTracks(sw, existingSwitch)) {
-               // Same switch, but the geometry of its tracks might have changed.
-               existingSwitch.calculateParameters();
-            } else {
-               if (existingSwitch) Switch.removeSwitch(existingSwitch);
-               [sw.track1, sw.track2, sw.track3, sw.track4].forEach((track) => track && track.addSwitch(sw));
-               Switch.allSwitches.push(sw);
-            }
-         } else if (existingSwitch) {
-            Switch.removeSwitch(existingSwitch);
-         }
-      } else if (existingSwitch) {
-         // Any other configuration is not a switch, so remove if one exists.
-         Switch.removeSwitch(existingSwitch);
-      }
-   }
-
-   /**
-    * Removes a switch and cleans up all references to it
-    * @param {Switch} switchToRemove - The switch to remove
-    */
-   static removeSwitch(switchToRemove: Switch): void {
-      // Remove switch from all tracks that reference it
-      [switchToRemove.track1, switchToRemove.track2, switchToRemove.track3, switchToRemove.track4].forEach((track) => {
-         if (track) {
-            track.switches = track.switches.map((sw) => (sw === switchToRemove ? null : sw));
-         }
-      });
-
-      // Remove switch from the global switches array
-      ArrayUtils.remove(Switch.allSwitches, switchToRemove);
    }
 
    static switch_A_Switch(sw: Switch, mouseX: number): void {
       if (!NumberUtils.is(sw.type, Switch.SWITCH_TYPE.DKW)) {
          sw.branch = swap(sw.branch, sw.track2, sw.track3);
+      } else if (mouseX < sw.location.x) {
+         sw.branch = swap(sw.branch, sw.track2, sw.track3);
       } else {
-         if (mouseX < sw.location.x) {
-            sw.branch = swap(sw.branch, sw.track2, sw.track3);
-         } else {
-            sw.from = swap(sw.from, sw.track1, sw.track4);
-         }
+         sw.from = swap(sw.from, sw.track1, sw.track4);
       }
+      sw.writeSelected();
    }
 
-   id: number;
-   location: Point;
-   type: number;
-   size: number;
-   tracks: (Track | null)[];
-   branch: Track | null;
-   from: Track | null;
-   track_directions: (V2 | null)[];
-   angle: number;
-   slope: number;
+   node: Node;
+   type: number = Switch.SWITCH_TYPE.NONE;
+   tracks: (Track | null)[] = new Array(4).fill(null);
+   branch: Track | null = null;
+   from: Track | null = null;
+   track_directions: (V2 | null)[] = new Array(4);
+   angle: number = 0;
+   slope: number = 0;
 
-   constructor(location: Point) {
-      this.id = Switch._getID();
-      this.location = location;
-      this.type = Switch.SWITCH_TYPE.NONE;
+   constructor(node: Node) {
+      this.node = node;
+   }
 
-      this.size = CONFIG.GRID_SIZE;
+   get id(): number {
+      return this.node.id;
+   }
 
-      this.tracks = new Array(4).fill(null);
-
-      this.branch = null;
-      this.from = null;
-      this.angle = 0;
-      this.slope = 0;
-      // Direction information for rendering - stores the direction vector for each track
-      this.track_directions = new Array(4);
+   get location(): Point {
+      return this.node.location;
    }
 
    get track1(): Track | null {
@@ -280,15 +117,49 @@ export class Switch {
       this.tracks[3] = track;
    }
 
-   /**
-    * Calculates the direction vectors for each track branch
-    * This eliminates the need for runtime direction calculations during rendering
-    */
-   calculateParameters(): void {
-      if (!Switch.hasMinimumTracks(this)) return;
+   bind(tracks: Track[]): void {
+      const location = this.location;
+      const left_tracks = tracks.filter((t) => t.end.equals(location)).sort((a, b) => b.slope - a.slope);
+      const right_tracks = tracks.filter((t) => t.start.equals(location)).sort((a, b) => b.slope - a.slope);
 
-      // For each track, determine if it connects to the switch at its start or end
-      // and use the appropriate direction (unit vector or its opposite)
+      this.tracks = new Array(4).fill(null);
+      if (left_tracks.length == 1) {
+         this.track1 = left_tracks[0];
+         this.track2 = right_tracks.find((t) => t.rad == this.track1!.rad) ?? null;
+      } else if (right_tracks.length >= 1) {
+         this.track1 = right_tracks[0];
+         this.track2 = left_tracks.find((t) => t.rad == this.track1!.rad) ?? null;
+      }
+      if (!this.track1 || !this.track2) return;
+
+      const rest = tracks.filter((t) => t != this.track1 && t != this.track2).sort((a, b) => a.start.x - b.start.x);
+      this.track3 = rest[0] ?? null;
+      this.track4 = rest[1] ?? null;
+
+      this.syncRoute();
+      this.calculateParameters();
+   }
+
+   syncRoute(): void {
+      const selected = this.node.selected;
+      const entry = [this.track1, this.track4].find((t) => t && selected[t.id] != null);
+      this.from = entry ?? this.track1;
+      this.branch = (entry ? this.trackById(selected[entry.id]) : null) ?? this.track2;
+   }
+
+   writeSelected(): void {
+      const selected: Record<number, number> = {};
+      if (this.from && this.branch) selected[this.from.id] = this.branch.id;
+      if (this.track4 && this.from && this.branch) {
+         const fromAlt = this.from === this.track1 ? this.track4 : this.track1;
+         const branchAlt = this.branch === this.track2 ? this.track3 : this.track2;
+         if (fromAlt && branchAlt) selected[fromAlt.id] = branchAlt.id;
+      }
+      this.node.selected = selected;
+   }
+
+   calculateParameters(): void {
+      if (!this.track1 || !this.track2 || !this.track3) return;
 
       this.track_directions = this.tracks.map((track) =>
          track ? (track.end.equals(this.location) ? V2.fromV2(track.unit).invert() : V2.fromV2(track.unit)) : null
@@ -299,59 +170,24 @@ export class Switch {
          this.track3!.end.equals(this.location) ? this.track3!.start : this.track3!.end,
          this.track1!.rad
       );
-      
+
       this.slope = this.track3!.slope - this.track2!.slope;
       this.angle = geometry.degToRad(Switch.getAngleBetweenTracks(this.track2!, this.track3!)!);
 
-
       if (this.track4) this.type = Switch.SWITCH_TYPE.DKW;
-      else {
-         this.type = Math.ceil((angle % 360) / 90);
-      }
+      else this.type = Math.ceil((angle % 360) / 90);
    }
 
-
-
-   /**
-    * Replaces all references to an old track with a new track within this switch.
-    * @param {Track} oldTrack - The track to be replaced.
-    * @param {Track} newTrack - The new track to reference.
-    */
-   replaceTrackReference(oldTrack: Track, newTrack: Track): void {
-      if (this.track1 === oldTrack) this.track1 = newTrack;
-      if (this.track2 === oldTrack) this.track2 = newTrack;
-      if (this.track3 === oldTrack) this.track3 = newTrack;
-      if (this.track4 === oldTrack) this.track4 = newTrack;
-
-      if (this.branch === oldTrack) this.branch = newTrack;
-      if (this.from === oldTrack) this.from = newTrack;
-
-      // After updating track references, it's crucial to recalculate the directions
-      // for rendering and other logic.
-      this.calculateParameters();
+   defaultPartner(track: Track): Track | null {
+      if (track === this.track1) return this.track2;
+      if (track === this.track2) return this.track1;
+      if (track === this.track3) return this.track4 ?? this.track1;
+      if (track === this.track4) return this.track3;
+      return null;
    }
 
-   stringify(): any {
-      return {
-         _class: "Switch",
-         id: this.id,
-         location: this.location,
-         tracks: this.tracks.map((t) => t?.id),
-         branch: this.branch?.id,
-         from: this.from?.id,
-      };
-   }
-
-   static FromObject(o: any): Switch {
-      const s = new Switch(Point.fromPoint(o.location));
-      s.id = o.id;
-
-      // Store IDs for later linking
-      (s as any).tracks_id = o.tracks;
-      (s as any).branch_id = o.branch;
-      (s as any).from_id = o.from;
-
-      return s;
+   private trackById(id: number | undefined): Track | null {
+      if (id == null) return null;
+      return this.tracks.find((t) => t?.id === id) ?? null;
    }
 }
-

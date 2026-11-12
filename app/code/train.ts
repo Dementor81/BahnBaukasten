@@ -12,6 +12,7 @@ import { gleisGraphics, circleHitArea } from "./pixiPrimitives.ts";
 import { CouplingPointInteraction } from "./interactions/CouplingPointInteraction.ts";
 import { DecouplingPointInteraction } from "./interactions/DecouplingPointInteraction.ts";
 import { Application } from "./application.ts";
+import { railNetwork } from "./railNetwork.ts";
 
 export class Train {
    static allTrains: Train[] = [];
@@ -304,21 +305,14 @@ export class Train {
             new_pos = prevCar.pos! + prevCar.length / 2 + spacing + car.length / 2;
          }
 
-         let newTrack;
          if (NumberUtils.outoff(new_pos, 0, currentTrack.length)) {
-            const sw = new_pos <= 0 ? currentTrack.switchAtTheStart : currentTrack.switchAtTheEnd;
-
-            if (sw) {
-               if (sw instanceof Track) newTrack = sw;
-               else if ((sw as any).from == currentTrack) newTrack = (sw as any).branch;
-               else if ((sw as any).branch == currentTrack) newTrack = (sw as any).from;
-
-               if (newTrack) {
-                  car.track = newTrack;
-                  car.pos = new_pos <= 0 ? newTrack.length + new_pos : new_pos - currentTrack.length;
-                  currentTrack = newTrack;
-                  new_pos = car.pos!;
-               }
+            const node = new_pos <= 0 ? currentTrack.nodeA : currentTrack.nodeB;
+            const newTrack = railNetwork.nextTrack(currentTrack, node);
+            if (newTrack) {
+               car.track = newTrack;
+               car.pos = new_pos <= 0 ? newTrack.length + new_pos : new_pos - currentTrack.length;
+               currentTrack = newTrack;
+               new_pos = car.pos!;
             }
          } else {
             car.track = currentTrack;
@@ -337,9 +331,8 @@ export class Train {
       let new_pos = train.pos! + movementX / app.renderingManager!.viewport.scale.x / train.track!.cos;
 
       if (NumberUtils.outoff(new_pos, 0 + train.length / 2, currentTrack.length - train.length / 2)) {
-         const sw = new_pos <= 0 + train.length / 2 ? currentTrack.switchAtTheStart : currentTrack.switchAtTheEnd;
-
-         return sw != null && (sw instanceof Track || (sw as any).from == currentTrack || (sw as any).branch == currentTrack);
+         const node = new_pos <= 0 + train.length / 2 ? currentTrack.nodeA : currentTrack.nodeB;
+         return railNetwork.nextTrack(currentTrack, node) != null;
       } else return true;
    }
 
@@ -348,11 +341,13 @@ export class Train {
       train._id = o._id;
       Train.nextId = Math.max(Train.nextId, o._id + 1);
       train._color = o.color;
-      train._coordinates = Point.fromPoint(o.coordinates);
+      if (o.coordinates) train._coordinates = Point.fromPoint(o.coordinates);
       train._type = o.type || Train.CAR_TYPES.LOCOMOTIVE;
       train._number = o.number || "";
       (train as any).trainCoupledBackId = o.trainCoupledBackId;
       (train as any).trainCoupledFrontId = o.trainCoupledFrontId;
+      (train as any).savedEdge = o.edge;
+      (train as any).savedKm = o.km;
       return train;
    }
 
@@ -455,10 +450,20 @@ export class Train {
 
 
    restore(): void {
-      const t = Track.findTrackByPoint(this._coordinates!);
-      if (t) {
-         this.track = t;
-         this.pos = t.getKmfromPoint(this._coordinates!);
+      const savedEdge = (this as any).savedEdge;
+      const savedKm = (this as any).savedKm;
+      if (savedEdge != null && savedKm != null) {
+         const t = railNetwork.getTrack(savedEdge);
+         if (t) {
+            this.track = t;
+            this.pos = savedKm;
+         }
+      } else if (this._coordinates) {
+         const t = Track.findTrackByPoint(this._coordinates);
+         if (t) {
+            this.track = t;
+            this.pos = t.getKmfromPoint(this._coordinates);
+         }
       }
 
       if ((this as any).trainCoupledFrontId != null) {
@@ -482,9 +487,9 @@ export class Train {
 
    stringify(): any {
       return {
-         _class: "Train",
          _id: this._id,
-         coordinates: this._coordinates,
+         edge: this._track?.id,
+         km: this._pos,
          color: this._color,
          number: this._number,
          type: this._type,

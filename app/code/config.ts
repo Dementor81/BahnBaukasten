@@ -11,8 +11,8 @@
 
 export const CONFIG = {
     // Application metadata
-    VERSION: "0.6",
-    UPDATED: "2026-11-01",
+    VERSION: "0.7",
+    UPDATED: "2026-11-08",
     
     // Default settings
     DEFAULT_SIMPLIFIED_VIEW: true,

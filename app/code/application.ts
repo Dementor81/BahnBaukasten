@@ -7,6 +7,7 @@ import { Train } from "./train.ts";
 import { Track } from "./track.ts";
 import { GenericObject } from "./generic_object.ts";
 import { RailwayCrossing } from "./railway_crossing.ts";
+import { railNetwork } from "./railNetwork.ts";
 import { STORAGE } from "./storage.ts";
 import { initSignals } from "./signal_library.ts";
 import { geometry } from "./tools.ts";
@@ -250,7 +251,7 @@ export class Application {
       if (this.selection.object) {
          if (this.selection.type == "Track") {
             const removedTracks = [].concat(this.selection.object);
-            removedTracks.forEach((t: any) => Track.removeTrack(t));
+            removedTracks.forEach((t: any) => railNetwork.removeTrack(t));
             for (const track of removedTracks) {
                const trainsOnTrack = Train.allTrains.filter((train: any) => train.track === track);
                for (const train of trainsOnTrack) {
@@ -258,7 +259,6 @@ export class Application {
                }
                RailwayCrossing.removeTrackReference(track);
             }
-            Track.createRailNetwork();
          }
          if (this.selection.type == "Signal") [].concat(this.selection.object).forEach((s: any) => Signal.removeSignal(s));
          if (this.selection.type == "RailwayCrossing") {

@@ -135,7 +135,6 @@ export class GenericObject {
 
    stringify(): any {
       return {
-         _class: "GenericObject",
          pos: this.#_pos,
          size: this.#_size,
          type: this.#_type,

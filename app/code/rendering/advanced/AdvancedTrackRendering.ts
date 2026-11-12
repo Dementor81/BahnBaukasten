@@ -6,6 +6,7 @@ import { TrackBuildInteraction } from "../../interactions/TrackBuildInteraction.
 import { createLayerContainer } from "../../pixiUtils.ts";
 import { DEBUG_VISUALIZE_TRACK_PARAMS, RAILS } from "./constants.ts";
 import type { AdvancedRendering } from "./AdvancedRendering.ts";
+import { Switch } from "../../switch.ts";
 
 export class AdvancedTrackRendering {
    constructor(readonly renderer: AdvancedRendering) {}
@@ -139,20 +140,14 @@ export class AdvancedTrackRendering {
       const centerLine = r.trackCalculations.calculateTrackPoints(track);
       r.sleeperRendering.drawTrackSleepers(centerLine, sleepersContainer);
 
-      if (track == (track.switchAtTheEnd as any)?.t1) {
+      for (const node of [track.nodeA, track.nodeB]) {
+         const sw = track.connectionAt(node);
+         if (!(sw instanceof Switch) || track !== sw.track1) continue;
          const switchSleepersContainer = r._rendering.sleepers_container.children.find(
-            (c: any) => rm.getGameObjFromDisplayObj(c) === track.switchAtTheEnd
+            (c: any) => rm.getGameObjFromDisplayObj(c) === sw
          );
-         const switchRenderingValues = r.switchCalculations.getSwitchRenderingValues(track.switchAtTheEnd);
-         r.sleeperRendering.drawSleepersOnSwitch(track.switchAtTheEnd, switchRenderingValues, switchSleepersContainer);
-      }
-
-      if (track == (track.switchAtTheStart as any)?.t1) {
-         const switchSleepersContainer = r._rendering.sleepers_container.children.find(
-            (c: any) => rm.getGameObjFromDisplayObj(c) === track.switchAtTheStart
-         );
-         const switchRenderingValues = r.switchCalculations.getSwitchRenderingValues(track.switchAtTheStart);
-         r.sleeperRendering.drawSleepersOnSwitch(track.switchAtTheStart, switchRenderingValues, switchSleepersContainer);
+         const switchRenderingValues = r.switchCalculations.getSwitchRenderingValues(sw);
+         r.sleeperRendering.drawSleepersOnSwitch(sw, switchRenderingValues, switchSleepersContainer);
       }
    }
 }

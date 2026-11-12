@@ -1,8 +1,6 @@
 "use strict";
 
 // ES6 Module imports
-import { Track } from './track.ts';
-import { Switch } from './switch.ts';
 import { Signal } from './signal.ts';
 import { Train } from './train.ts';
 import { GenericObject } from './generic_object.ts';
@@ -13,19 +11,11 @@ import { CONFIG } from './config.ts';
 import { Application } from './application.ts';
 import { AdvancedRendering } from './rendering/advanced/AdvancedRendering.ts';
 import { getCDataValue } from './tools.ts';
+import { railNetwork } from './railNetwork.ts';
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
-
-interface ClassMap {
-   Track: typeof Track;
-   Switch: typeof Switch;
-   Signal: typeof Signal;
-   Train: typeof Train;
-   GenericObject: typeof GenericObject;
-   RailwayCrossing: typeof RailwayCrossing;
-}
 
 interface SavedSettings {
    zoom: number;
@@ -39,17 +29,15 @@ interface UserPrefs {
 }
 
 interface LoadedData {
+   nodes?: any[];
+   edges?: any[];
    tracks?: any[];
    trains?: any[];
    switches?: any[];
+   signals?: any[];
    objects?: any[];
    crossings?: any[];
    settings?: SavedSettings;
-}
-
-interface SwitchData {
-   type: "Switch" | "Track";
-   id: number;
 }
 
 // ============================================================================
@@ -81,33 +69,6 @@ export const STORAGE = {
       const prefs = STORAGE.getPrefs();
       prefs.darkMode = enabled;
       localStorage.setItem(STORAGE.PREFS_IDENT, JSON.stringify(prefs));
-   },
-
-   /**
-    * Get the class map for deserialization
-    */
-   getClassMap(): ClassMap {
-      return {
-         Track: Track,
-         Switch: Switch,
-         Signal: Signal,
-         Train: Train,
-         GenericObject: GenericObject,
-         RailwayCrossing: RailwayCrossing,
-      };
-   },
-
-   /**
-    * JSON receiver function for parsing saved objects
-    */
-   receiver(key: string, value: any): any {
-      if (value?._class && STORAGE.getClassMap()[value._class as keyof ClassMap]) {
-         const MyClass = STORAGE.getClassMap()[value._class as keyof ClassMap];
-         const instance = MyClass.FromObject(value);
-         if (instance == null) ui.showErrorToast(new Error("error loading " + key));
-         return instance;
-      }
-      return value;
    },
 
    /**
@@ -151,9 +112,9 @@ export const STORAGE = {
       
       return JSON.stringify(
          {
-            tracks: Track.allTracks,
+            ...railNetwork.toJSON(),
+            signals: [...Signal.allSignals],
             trains: Train.allTrains,
-            switches: Switch.allSwitches,
             objects: GenericObject.all_objects,
             crossings: RailwayCrossing.allCrossings,
             settings: settings,
@@ -173,7 +134,7 @@ export const STORAGE = {
       if (last) {
          STORAGE.loadFromJson(last);
       } else {
-         Track.allTracks = [];
+         railNetwork.clear();
       }
 
       const uiManager = app.uiManager as any;
@@ -181,48 +142,13 @@ export const STORAGE = {
    },
 
    /**
-    * Link objects after deserialization (resolve ID references)
-    */
-   linkObjects(): void {
-      // Link switches to tracks
-      Switch.allSwitches.forEach((s: any) => {
-         if (s.tracks_id) {
-            s.tracks = s.tracks_id.map((id: number | null) => (id ? Track.allTracks.find((t) => t.id === id) ?? null : null));
-         }
-         s.branch = s.branch_id ? Track.allTracks.find((t) => t.id === s.branch_id) ?? null : null;
-         s.from = s.from_id ? Track.allTracks.find((t) => t.id === s.from_id) ?? null : null;
-         if (Switch.hasMinimumTracks(s)) s.calculateParameters();
-         else console.warn(`Switch ${s.id} has incomplete track references after load`);
-         delete s.tracks_id;
-         delete s.branch_id;
-         delete s.from_id;
-      });
-
-      // Link tracks to switches/other tracks
-      Track.allTracks.forEach((t: any) => {
-         t.switches = t.switches_data.map((sd: SwitchData | null) => {
-            if (!sd) return null;
-            if (sd.type === "Switch") {
-               return Switch.allSwitches.find((s) => s.id === sd.id) ?? null;
-            } else if (sd.type === "Track") {
-               return Track.allTracks.find((tr) => tr.id === sd.id) ?? null;
-            }
-            return null;
-         });
-         delete t.switches_data;
-      });
-
-      RailwayCrossing.allCrossings.forEach((crossing) => crossing.relinkTracks());
-      RailwayCrossing.allCrossings = RailwayCrossing.allCrossings.filter((crossing) => crossing.entries.length > 0);
-   },
-
-   /**
     * Load application state from JSON string
     */
    loadFromJson(json: string): void {
+      const raw: LoadedData = JSON.parse(json);
+      const loaded = Array.isArray(raw.nodes) ? raw : migrateOldSave(raw);
       (window as any).app.renderingManager.clear(false);
-      const loaded: LoadedData = JSON.parse(json, STORAGE.receiver);
-      
+
       if (loaded.settings) {
          const vp = (window as any).app.renderingManager.viewport;
          vp.x = loaded.settings.scrollX;
@@ -234,27 +160,31 @@ export const STORAGE = {
             );
          }
       }
-      
-      if (loaded.objects) GenericObject.all_objects = loaded.objects;
-      RailwayCrossing.allCrossings = loaded.crossings ? (ArrayUtils.cleanUp(loaded.crossings) as RailwayCrossing[]) : [];
-      Track.allTracks = loaded.tracks ? (ArrayUtils.cleanUp(loaded.tracks) as unknown as Track[]) : []; // Filter out nulls from loading errors
-      Switch.allSwitches = loaded.switches ? (ArrayUtils.cleanUp(loaded.switches) as unknown as Switch[]) : []; // Filter out nulls from loading errors
 
-      // Reset counters
-      Track.counter = Track.allTracks.length ? Math.max(...Track.allTracks.map((t) => t.id)) + 1 : 0;
-      Switch.counter = Switch.allSwitches.length ? Math.max(...Switch.allSwitches.map((s) => s.id)) + 1 : 0;
-      RailwayCrossing.counter = RailwayCrossing.allCrossings.length ? Math.max(...RailwayCrossing.allCrossings.map((crossing) => crossing.id)) + 1 : 0;
-
-      STORAGE.linkObjects();
-
+      railNetwork.load(loaded.nodes ?? [], loaded.edges ?? []);
+      for (const signal of loaded.signals ?? []) Signal.FromObject(signal);
       Signal.migrateRenderOrder();
 
-      Track.createRailNetwork();
-      Train.allTrains = loaded.trains ? (ArrayUtils.cleanUp(loaded.trains) as unknown as Train[]) : []; // Filter out nulls from loading errors
+      if (loaded.objects) {
+         GenericObject.all_objects = loaded.objects.map((o: any) => (o instanceof GenericObject ? o : GenericObject.FromObject(o)));
+      }
+      RailwayCrossing.allCrossings = (loaded.crossings ?? []).map((o: any) =>
+         o instanceof RailwayCrossing ? o : RailwayCrossing.FromObject(o)
+      );
+      RailwayCrossing.counter = RailwayCrossing.allCrossings.length
+         ? Math.max(...RailwayCrossing.allCrossings.map((crossing) => crossing.id)) + 1
+         : 0;
+
+      RailwayCrossing.allCrossings.forEach((crossing) => crossing.relinkTracks());
+      RailwayCrossing.allCrossings = RailwayCrossing.allCrossings.filter((crossing) => crossing.entries.length > 0);
+
+      Train.allTrains = (loaded.trains ?? []).map((o: any) => (o instanceof Train ? o : Train.FromObject(o)));
       Train.allTrains.forEach((t: any) => t.restore());
       Train.allTrains.forEach((t: any) => {
          delete t.trainCoupledFrontId;
          delete t.trainCoupledBackId;
+         delete t.savedEdge;
+         delete t.savedKm;
       });
       Train.allTrains = Train.allTrains.filter((t: any) => t.track != null);
 
@@ -463,4 +393,69 @@ export const STORAGE = {
       });
    }, 
 };
+
+function migrateOldSave(data: LoadedData): LoadedData {
+   const nodes: { id: number; x: number; y: number; selected?: Record<number, number> }[] = [];
+   const nodeByKey = new Map<string, (typeof nodes)[0]>();
+   const nodeAt = (p: { x: number; y: number }) => {
+      const key = `${p.x},${p.y}`;
+      let node = nodeByKey.get(key);
+      if (!node) {
+         node = { id: nodes.length, x: p.x, y: p.y };
+         nodeByKey.set(key, node);
+         nodes.push(node);
+      }
+      return node;
+   };
+
+   const edges: { id: number; a: number; b: number; bumperA: boolean; bumperB: boolean }[] = [];
+   const signals: any[] = [];
+   for (const track of data.tracks ?? []) {
+      const a = nodeAt(track.start);
+      const b = nodeAt(track.end);
+      const bumper = track.hasBumper != null ? track.hasBumper : true;
+      edges.push({ id: track.id, a: a.id, b: b.id, bumperA: bumper, bumperB: bumper });
+      for (const signal of track.signals ?? []) {
+         signals.push({
+            _template: signal._template,
+            _signalStellung: signal._signalStellung,
+            _renderOrder: signal._renderOrder,
+            edge: track.id,
+            km: signal._positioning?.km ?? 0,
+            above: signal._positioning?.above ?? false,
+            flipped: signal._positioning?.flipped ?? false,
+         });
+      }
+   }
+
+   for (const sw of data.switches ?? []) {
+      const node = nodeByKey.get(`${sw.location.x},${sw.location.y}`);
+      if (!node || sw.from == null || sw.branch == null) continue;
+      node.selected ??= {};
+      node.selected[sw.from] = sw.branch;
+      const ids = (sw.tracks ?? []).filter(Boolean);
+      if (ids.length === 4) {
+         const others = ids.filter((id: number) => id !== sw.from && id !== sw.branch);
+         if (others.length === 2) node.selected[others[0]] = others[1];
+      }
+   }
+
+   const crossings = (data.crossings ?? []).map((crossing: any) => ({
+      ...crossing,
+      entries: (crossing.entries ?? []).map((entry: any) => ({
+         ...entry,
+         trackId: entry.edge ?? entry.trackId,
+      })),
+   }));
+
+   return {
+      nodes,
+      edges,
+      signals,
+      trains: data.trains ?? [],
+      objects: data.objects ?? [],
+      crossings,
+      settings: data.settings,
+   };
+}
 
